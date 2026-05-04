@@ -1,0 +1,15 @@
+.submitButton-post {
+  align-self: flex-start;
+  background-color: #0079d3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.submitButton-post:hover {
+  background-color: #1484d6;
+}

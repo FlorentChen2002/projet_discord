@@ -1,0 +1,149 @@
+/* Centrage de la liste */
+.p-4 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Style de chaque utilisateur */
+.user-unvalidated,
+.user-validated,
+.user-admin {
+  width: 80%;
+  font-size: 1.2rem;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Couleurs déjà définies précédemment */
+.user-unvalidated {
+  background-color: #ffe6e6;
+  color: #b00020;
+}
+
+.user-validated {
+  background-color: #e6ffe6;
+  color: #006600;
+}
+
+.user-admin {
+  background-color: #e5f0ff;
+  color: #003399;
+  font-weight: bold;
+}
+
+/* Style des boutons */
+button {
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Boutons spécifiques */
+.btn-promote {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn-promote.disabled {
+  background-color: #a5d6a7;
+  cursor: not-allowed;
+}
+
+.btn-demote {
+  background-color: #f57c00;
+  color: white;
+}
+
+.btn-validate {
+  background-color: #2196F3;
+  color: white;
+}
+
+.btn-refuse {
+  background-color: #e53935;
+  color: white;
+}
+
+button:hover:not(.disabled) {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.admin-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 500px;
+  padding: 14px 20px;
+  border-radius: 30px;
+  font-size: 1.2rem;
+  border: 2px solid #ccc;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.user-list {
+  list-style: none;
+  padding: 0;
+}
+
+.user-item {
+  padding: 1rem;
+  margin: 1rem auto;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-info {
+  flex: 1;
+  text-align: left;
+}
+
+.actions button {
+  margin: 0 5px;
+  padding: 10px 14px;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Couleurs */
+.user-item.non-valide {
+  background-color: #ffe5e5;
+}
+
+.user-item.valide {
+  background-color: #e6ffe6;
+}
+
+.user-item.admin {
+  background-color: #e5ecff;
+}
+
+.search-form {
+  display: flex;
+  flex-direction: column; /* vertical par défaut */
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}

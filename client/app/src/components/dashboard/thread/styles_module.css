@@ -1,0 +1,33 @@
+/* components/NewPostForm/styles.module.css */
+.newPostForm-post {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+
+.textareaField-post {
+  border: 1px solid #edeff1;
+  border-radius: 4px;
+  padding: 8px;
+  background-color: #f6f7f8;
+  min-height: 100px;
+  resize: none;
+}
+
+.submitButton-post {
+  align-self: flex-start;
+  background-color: #0079d3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.submitButton-post:hover {
+  background-color: #1484d6;
+}

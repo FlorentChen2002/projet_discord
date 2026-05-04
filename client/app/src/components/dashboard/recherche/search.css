@@ -1,0 +1,47 @@
+    /* ===== Formulaire horizontal ou vertical (par défaut vertical) ===== */
+  .search-form {
+    display: flex;
+    flex-direction: column; /* vertical par défaut */
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  /* Pour activer un formulaire horizontal, ajoutez une classe supplémentaire */
+  .search-form.horizontal {
+    flex-direction: row;
+    justify-content: center;
+  }
+  
+  /* ===== Champ texte ===== */
+  .search-form input[type="text"] {
+    width: 100%;
+    max-width: 500px;
+    padding: 14px 20px;
+    border-radius: 30px;
+    font-size: 1.2rem;
+    border: 2px solid #ccc;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+  
+  .search-form input[type="text"]:focus {
+    border-color: #3b82f6;
+  }
+  
+  /* ===== Bouton ===== */
+  .search-form button {
+    width: 20%;
+    padding: 12px;
+    font-size: 1.1rem;
+    border-radius: 25px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .search-form button:hover {
+    background-color: #2563eb;
+  }
