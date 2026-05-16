@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+    "os"
     "serveur/handler"
     "serveur/middleware"
     "serveur/service"
@@ -15,10 +16,8 @@ import (
 )
 
 // variable globale pour le token du bot discord et l'url de l'api discord
-const (
-    Discord_API = "https://discord.com/api/v10"
-    Token = ""
-)
+const Discord_API = "https://discord.com/api/v10"
+var Token = os.Getenv("DISCORD_TOKEN")
 
 // fonction pour configurer le bot discord et récupérer les ids du serveur et du channel
 func setupDiscordBot(ctx context.Context, s *service.Discord_service) error {
