@@ -2,11 +2,12 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 
-//Supprime un commentaire ou un sujet du forum via une requête API au montage.
+//Supprime un commentaire ou un sujet du forum via une requête API
 function DeleteForum({commentaire,query, onDelete}){
+    //comportement
     const called = useRef(false);
     const navigate = useNavigate();
-
+    //Envoie une requête DELETE à l'API pour supprimer le sujet ou le commentaire
     const supprimer = async() =>{
         try {
             const response = await axios.delete(`http://localhost:8000/api/forum/delete/${query}`, {
@@ -25,13 +26,12 @@ function DeleteForum({commentaire,query, onDelete}){
             console.error("Erreur lors de l'envoi de la requête :", e);
         }
     }
-
+    //Effet de bord pour appeler la fonction de suppression une seule fois au montage du composant
     useEffect(() => {
         if (called.current) return;
         called.current = true;
         supprimer();
     }, []);
-
     return null;
 }
 

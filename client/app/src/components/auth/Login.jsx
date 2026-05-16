@@ -3,8 +3,8 @@ import axios from 'axios';
 import { Link,useNavigate } from "react-router-dom";
 import "./Login.css";
 
-// Composant de connexion utilisateur.
-// Gère l'envoi du pseudo/mot de passe et redirige après authentification réussie.
+// Composant de connexion utilisateur
+// Gère l'envoi du pseudo/mot de passe et redirige après authentification réussie
 function Login({ refreshAuth }) {
   //state
   const [pseudo, setPseudo] = useState("");

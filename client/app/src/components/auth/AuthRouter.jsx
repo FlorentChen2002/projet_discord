@@ -5,6 +5,7 @@ import Register from "./Register";
 import Login from "./Login";
 import { Routes, Route } from "react-router-dom";
 
+// Composant de routage pour l'authentification (login/register)
 function AuthRouter({ refreshAuth }) {
   //affichage
   return (

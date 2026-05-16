@@ -8,32 +8,37 @@ import (
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// Structure représentant une requête de connexion, obtenue à partir du corps de la requête HTTP
 type Login_requete struct {
     Pseudo string `json:"pseudo"`
     Mdp string `json:"mdp"`
 }
 
+// Structure représentant une requête d'inscription, obtenue à partir du corps de la requête HTTP
 type Inscription_requete struct {
     Pseudo string `json:"pseudo"`
     Mdp string `json:"mdp"`
     Rang string `json:"rang"`
 }
 
+// Conteneur pour avoir accès à la base de données
 type Env struct {
     User_reposite *service.User_service
 }
 
+// variables globales pour la gestion des sessions utilisateur
 var (
     Sessions = make(map[string]string)
     Sessions_mux sync.RWMutex
 )
-
+// fonctions ajouter un nouveau utilisateur dans la session
 func SetSession(session_id, user_id string) {
     Sessions_mux.Lock()
     Sessions[session_id] = user_id
     defer Sessions_mux.Unlock()
 }
 
+// fonction qui permet d'obtenir l'id de l'utilisateur à partir de son session_id
 func GetSession(session_id string) (string, bool) {
     Sessions_mux.RLock()
     user_id, tmp := Sessions[session_id]
@@ -41,12 +46,14 @@ func GetSession(session_id string) (string, bool) {
     return user_id, tmp
 }
 
+// fonction qui permet de supprimer une session à partir de son session_id ( utilisé pour la déconnexion )
 func DeleteSession(session_id string) {
     Sessions_mux.Lock()
     delete(Sessions, session_id)
     defer Sessions_mux.Unlock()
 }
 
+// fonction qui permet de se connecter à un compte utilisateur
 func (e *Env) LoginHandler(w http.ResponseWriter, r *http.Request) {
     var req Login_requete
     w.Header().Set("Content-Type", "application/json")
@@ -71,6 +78,7 @@ func (e *Env) LoginHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(retour)
 }
 
+// fonction qui permet de s'inscrire à un compte utilisateur
 func (e *Env) InscriptionHandler(w http.ResponseWriter, r *http.Request) {
     var req Inscription_requete
     w.Header().Set("Content-Type", "application/json")
@@ -90,6 +98,7 @@ func (e *Env) InscriptionHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]string{"message": "Inscription réussie"})
 }
 
+// fonction qui permet d'obtenir les données d'un utilisateur via son id
 func (e *Env) GetMeHandler(w http.ResponseWriter, r *http.Request) {
     cookie, err := r.Cookie("session_token")
     w.Header().Set("Content-Type", "application/json")
@@ -111,6 +120,7 @@ func (e *Env) GetMeHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(user)
 }
 
+// fonction qui permet de faire une deconnexion d'un utilisateur en supprimant l'utilisateur de la session
 func (e *Env) LogoutHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     cookie, err := r.Cookie("session_token")
@@ -125,6 +135,7 @@ func (e *Env) LogoutHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]string{"message": "Déconnexion réussie"})
 }
 
+// fonction qui permet d'obtenir tous les utilsateurs
 func (e *Env) GetAllUserHandler(w http.ResponseWriter, r *http.Request){
     w.Header().Set("Content-Type", "application/json")
     user, err := e.User_reposite.GetAllUsers(r.Context())
@@ -137,6 +148,7 @@ func (e *Env) GetAllUserHandler(w http.ResponseWriter, r *http.Request){
     json.NewEncoder(w).Encode(user)
 }
 
+// fonction qui permet d'obtenir les données d'un utilisateur via son id
 func (e *Env) GetUserByIdHandler(w http.ResponseWriter, r *http.Request){
     w.Header().Set("Content-Type", "application/json")
     userID := r.PathValue("id")

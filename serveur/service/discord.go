@@ -1,279 +1,202 @@
 package service
 
 import (
-    "bytes"
+    "time"
+    "sync"
     "context"
-    "encoding/json"
-    "fmt"
-    "net/http"
+    "serveur/repository"
 )
 
-// Structure du service Discord qui contient les informations de la connexion avec le discord
-type Discord_service struct {
-    Token string
-    Discord_API string
-    Guild_ID string
+// Conteneur pour avoir accès à la base de données, à l'api discord, au service (forum, discord) et au hub d'événements du forum
+// ajout de 2 cannaus pour le systeme des signaux Esterel (pauseSyncro et resumeSyncro) pour éviter les problèmes de synchronisation lors de la suppression d'un sujet
+// on utilise un mutex pour éviter les problèmes de synchronisation lors de la création d'un thread et l'ajout de messages dans le forum
+type Env_discord struct {
+    Discord_repo *repository.Discord_reposite
+    Discord_api *Discord_service
+    Forum_service *Forum_service
+    Forum_Events *ForumEventHub
+    mu sync.Map
+    pauseSyncro chan string
+    resumeSyncro chan string
 }
 
-// Structure de réponse pour obtenir les serveurs
-type DiscordGuild struct {
-    ID string `json:"id"`
-    Name string `json:"name"`
+// fonction qui permet de créer un nouveau verrou par sujet_id
+func (e *Env_discord) getMutex(sujet_id string) *sync.RWMutex {
+    mu, _ := e.mu.LoadOrStore(sujet_id, &sync.RWMutex{})
+    return mu.(*sync.RWMutex)
 }
 
-// Struucture de réponse pour obtenir les channels
-type DiscordChannel struct {
-    ID string `json:"id"`
-    Type int `json:"type"`
-    Name string `json:"name"`
-    LastMessageID string `json:"last_message_id,omitempty"`
-}
-
-//l'ensemble des channels
-type DiscordThreadsResponse struct {
-    Threads []DiscordThread `json:"threads"` // La liste des sous-parties
-}
-
-//structure de channel
-type DiscordThread struct {
-    ID string `json:"id"`
-    Name string `json:"name"`
-    ParentID string `json:"parent_id"` // L'ID du forum parent
-    OwnerID string `json:"owner_id"`  // L'auteur
-    Type int `json:"type"`
-}
-
-//structure de message ( récupération )
-type DiscordMessage struct {
-    ID string `json:"id"`
-    Content string `json:"content"`
-    Author DiscordUser `json:"author"`
-    Timestamp string `json:"timestamp"`
-}
-
-// Structure des utilisateurs
-type DiscordUser struct {
-    ID string `json:"id"`
-    Username string `json:"username"`
-}
-
-// Structure pour la création d'un thread avec un message
-type CreateMsgThread struct {
-    Name string `json:"name"`
-    Message MessageContent `json:"message"`
-}
-
-// Structure pour le contenu d'un message ( envoyer )
-type MessageContent struct {
-    Content string `json:"content"`
-}
-
-// Fonction qui retourne le premier serveur que le bot est connecté
-// Il fait une recherche sur l'ensemble de serveur discord que le bot est connecté et il retourne son id
-func (s *Discord_service) GetGuildIdDiscord(ctx context.Context) (string, error) {
-    //préparation de la requete
-    url := fmt.Sprintf("%s/users/@me/guilds", s.Discord_API)
-    req, err := http.NewRequest("GET", url, nil)
+// fonction qui permet de créer un sujet dans Discord et de stocker le dernier message du thread dans la base de données
+func (e *Env_discord) SetSujetService(ctx context.Context, titre string, description string, user_id string, user_pseudo string)(string, error) {
+    //mutex ?
+    thread, err := e.Discord_api.CreateThreadDiscord(ctx, e.Discord_api.Channel_ID, titre, description, user_pseudo)
     if err != nil {
         return "", err
     }
-    req.Header.Set("Authorization", "Bot "+ s.Token)
-    //on crée un client http et on envoie  une requete
-    client := &http.Client{}
-    resp, err := client.Do(req)
+    mu := e.getMutex(thread.ID)
+    mu.Lock()
+    defer mu.Unlock()
+    err = e.Discord_repo.SetLastMessage(ctx, thread.Message.ID,thread.ID)
     if err != nil {
         return "", err
     }
-    defer resp.Body.Close()
-    //on transforme le text json en tableau
-    var guilds []DiscordGuild
-    err = json.NewDecoder(resp.Body).Decode(&guilds)
-    if err != nil {
-        return "", err
-    }
-    if len(guilds) > 0 {
-        fmt.Println("Connexion au serveur : ", guilds[0].Name, guilds[0].ID)
-        return guilds[0].ID, nil
-    }
-    return "", fmt.Errorf("le bot n'a pas trouvé de serveur ")
+    return thread.ID, nil
 }
 
-//Fonction qui retourne l'id du salon rechercher402
-func (s *Discord_service) GetChannelIdDiscord(ctx context.Context, forum string) (string, error) {
-    url := fmt.Sprintf("%s/guilds/%s/channels", s.Discord_API, s.Guild_ID)
-    req, err := http.NewRequest("GET", url, nil)
+// fonction qui permet de créer un message dans Discord et de stocker le dernier message du thread dans la base de données
+func (e *Env_discord) SetMessagesService(ctx context.Context, sujet_id string, content string, user_pseudo string, repond_id string)(string,error){
+    mu := e.getMutex(sujet_id)
+    mu.Lock()
+    defer mu.Unlock()
+    msg, err := e.Discord_api.PostMessageDiscord(ctx, sujet_id, content, user_pseudo, repond_id)
     if err != nil {
         return "", err
     }
-    req.Header.Set("Authorization", "Bot "+ s.Token)
-    client := &http.Client{}
-    resp, err := client.Do(req)
+    err = e.Discord_repo.SetLastMessage(ctx, msg.ID, sujet_id)
+    if err != nil {
+        return "", err
+    }
+    return msg.ID, nil
+}
+
+// fonction qui permet de récupérer les nouveaux messages d'un thread Discord et de les ajouter dans le forum
+// si le thread n'existe pas dans le forum, on le crée
+// si le thread existe déjà, on ajoute les nouveaux messages dans le forum
+// on publie un événement dans le hub d'événements du forum à chaque fois qu'on ajoute un message dans le forum
+func (e *Env_discord) GetMessagesService(ctx context.Context, sujet_id string, name string)(error) {
+    mu := e.getMutex(sujet_id)
+    mu.Lock()
+    defer mu.Unlock()
+    // obtenir le dernier message du thread dans la base de données pour ne récupérer que les nouveaux messages depuis ce message
+    last_msg, _ :=  e.Discord_repo.GetLastMessage(ctx, sujet_id)
+    liste_msg, err := e.Discord_api.GetNewMessages(ctx, sujet_id, last_msg.Msg_id)
     if err != nil{
-        return "", err
+        return err
     }
-    defer resp.Body.Close()
-    var channels []DiscordChannel
-    json.NewDecoder(resp.Body).Decode(&channels)
-    for _, ch := range channels {
-        if ch.Name == forum && ch.Type == 15 {
-            fmt.Printf("Channel forum existant : %s !\n",ch.ID)
-            return ch.ID,nil
+    if len(liste_msg) == 0 { // pas de nouveau message, donc on ne fait rien
+        return nil
+    }
+    _, err = e.Forum_service.GetSujet(ctx, sujet_id) // vérifier si le thread existe déjà dans le forum
+    tmp := false
+    if err != nil {
+        tmp = true
+    }
+    for i := len(liste_msg) - 1; i >= 0; i-- {
+        if tmp { // si elle n'existe pas alors on la crée
+            e.Forum_service.Create_sujet(ctx, sujet_id, name, liste_msg[i].Content, liste_msg[i].Auteur.ID, liste_msg[i].Auteur.Username, false, false)
+            tmp = false
+            if e.Forum_Events != nil {
+                e.Forum_Events.Publish(ForumEvent{Type: "sujet", Action: "updated", SujetID: sujet_id})
+            }
+        } else { // sinon on ajoute les nouveaux messages dans le forum
+            var repond []repository.Repond_db
+            if liste_msg[i].MessageReference != nil { // gestion du cas si on répond à un message sur Discord
+                repond_tmp, err := e.Forum_service.GetMessage(ctx, liste_msg[i].MessageReference.MessageID)
+                if err != nil {
+                    return err
+                }
+                repond = []repository.Repond_db{{ // reconstitution de la structure Repond_db via une obtention du message référencé dans le forum pour pouvoir le concorder avec le msg sur le site
+                        Id: liste_msg[i].MessageReference.MessageID,
+                        Content: repond_tmp.Content,
+                        User_pseudo: repond_tmp.User_pseudo,
+                        Date: repond_tmp.Date,
+                    },
+                }
+            }
+            if sujet_id == liste_msg[i].ID {
+                continue
+            }
+            e.Forum_service.Create_messages(ctx, sujet_id, liste_msg[i].ID, liste_msg[i].Content, liste_msg[i].Auteur.ID, liste_msg[i].Auteur.Username, false, repond, false)
         }
     }
-    return "",fmt.Errorf("le bot n'a pas trouvé de channel ")
-}
-
-//Fonction qui crée un channel forum sur le discord
-func (s *Discord_service) CreateChannelDiscord(ctx context.Context, name string)(int, error){
-    url := fmt.Sprintf("%s/guilds/%s/channels", s.Discord_API, s.Guild_ID)
-    newChannel := DiscordChannel{ Name: name, Type: 15,}
-    jsonData, err := json.Marshal(newChannel)
-    if err != nil{
-        return -1, err
-    }
-    req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-    if err != nil{
-        return -1, err
-    }
-    req.Header.Set("Authorization", "Bot "+ s.Token)
-    req.Header.Set("Content-Type", "application/json")
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        fmt.Println("Erreur lors de la création :", err)
-        return -1,err
-    }
-    defer resp.Body.Close()
-    return 1, nil
-}
-
-// fonction qui crée un thread dans un channel forum
-func (s *Discord_service) CreateThreadDiscord(ctx context.Context, channelID string, titre string, message string, pseudo string) (string, error) {
-    url := fmt.Sprintf("%s/channels/%s/threads", s.Discord_API, channelID)
-    // Dans ton service
-    message_auteur := fmt.Sprintf("Posté par **%s** :\n\n%s", pseudo, message)
-    newMsg := CreateMsgThread{
-        Name: titre,
-        Message: MessageContent{
-            Content: message_auteur,
-        },
-    }
-    jsonData, err := json.Marshal(newMsg)
-    if err != nil {
-        return "", err
-    }
-    req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-    if err != nil {
-        return "", err
-    }
-    req.Header.Set("Authorization", "Bot "+s.Token)
-    req.Header.Set("Content-Type", "application/json")
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return "", err
-    }
-    defer resp.Body.Close()
-    if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-        return "", fmt.Errorf("Erreur %s : la création du thread a échoué", resp.StatusCode)
-    }
-    var result DiscordThread
-    err = json.NewDecoder(resp.Body).Decode(&result)
-    return result.ID, err
-}
-
-// fonction qui poste un message dans un thread
-func (s *Discord_service) PostMessageDiscord(ctx context.Context, threadID string, text string, authorPseudo string) error {
-    url := fmt.Sprintf("%s/channels/%s/messages", s.Discord_API, threadID)
-    message_auteur := fmt.Sprintf("**%s** : %s", authorPseudo, text)
-    newMsg := MessageContent{
-        Content: message_auteur,
-    }
-    jsonData, err := json.Marshal(newMsg)
+    // puis sauvegarde du dernier message lu
+    err = e.Discord_repo.SetLastMessage(ctx, liste_msg[0].ID, sujet_id)
     if err != nil {
         return err
     }
-    req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-    if err != nil {
-        return err
-    }
-    req.Header.Set("Authorization", "Bot "+s.Token)
-    req.Header.Set("Content-Type", "application/json")
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
-    if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-        return fmt.Errorf("Erruer %s : l'envoie du message a échoué", resp.StatusCode)
+    if e.Forum_Events != nil { // signaler au abonnée pour dire qu'il y a un nouveau message dans le thread
+        e.Forum_Events.Publish(ForumEvent{Type: "message", Action: "created", ThreadID: sujet_id})
     }
     return nil
 }
 
-// fonction qui retourne un tableau de tous les threads
-func (s *Discord_service) GetAllThreadDiscord(ctx context.Context, channelID string) ([]DiscordThread,error) {
-    url := fmt.Sprintf("%s/guilds/%s/threads/active", s.Discord_API, s.Guild_ID)
-    client := &http.Client{}
-    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-    if err != nil{
-        return nil, err
+// fonction qui permet de supprimer un message dans Discord et si c'est le dernier message du thread alors on le initialise vide
+func (e *Env_discord) DeleteMessageService(ctx context.Context, sujet_id string, msg_id string){
+    mu := e.getMutex(sujet_id)
+    mu.Lock()
+    defer mu.Unlock()
+    last_msg, _ :=  e.Discord_repo.GetLastMessage(ctx, sujet_id)
+    if msg_id == last_msg.Msg_id {
+        e.Discord_repo.SetLastMessage(ctx, "", sujet_id)
     }
-    req.Header.Set("Authorization", "Bot "+ s.Token)
-    resp, err := client.Do(req)
-    if err != nil{
-        return nil, err
-    }
-    defer resp.Body.Close()
-    var allThreads []DiscordThread
-    var reponse DiscordThreadsResponse
-    json.NewDecoder(resp.Body).Decode(&reponse)
-    for _, t := range reponse.Threads {
-        if t.ParentID == channelID { 
-            fmt.Printf("Thread trouvé : %s %s\n", t.Name, t.ID)
-            allThreads = append(allThreads, t)
-        }
-    }
-    return allThreads, nil
+    e.Discord_api.DeleteMessageDiscord(ctx, sujet_id, msg_id)
 }
 
-// fonction qui obtient tous les messages du thread en question
-func (s *Discord_service) GetThreadMessageDiscord(ctx context.Context, threadID string) ([]DiscordMessage, error) {
-    url := fmt.Sprintf("%s/channels/%s/messages", s.Discord_API, threadID)
-    req, err := http.NewRequest("GET", url, nil)
-    if err != nil {
-        return nil, err
-    }
-    req.Header.Set("Authorization", "Bot "+ s.Token)
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-    var messages []DiscordMessage
-    err = json.NewDecoder(resp.Body).Decode(&messages)
-    return messages, err
+// fonction qui permet de supprimer le thread et tous les messages associés dans Discord
+// et de supprimer la collection concernant
+func (e *Env_discord) DeleteSujetService(ctx context.Context, sujet_id string){
+    e.pauseSyncro <- sujet_id
+    mu := e.getMutex(sujet_id)
+    mu.Lock()
+    defer mu.Unlock()
+    e.Discord_api.DeleteThreadDiscord(ctx, sujet_id)
+    e.Discord_repo.DeleteLastMessage(ctx, sujet_id)
+    e.resumeSyncro <- sujet_id
 }
-/*
-func main() {
-    fmt.Println("Démarrage du serveur !")
-    Guild_ID = getGuild_ID()
-    if Guild_ID == "" {
-        fmt.Println("Erreur : aucun serveur n'a été détécté !")
-        return
-    }
-    forum_name := "forum"
-    channelid := getChannelID(forum_name)
-    if channelid == "" {
-        tmp := createChannel(forum_name);
-        if tmp == -1 {
-            fmt.Println("Erreur : impossible de créer un channel forum !")
+
+// Lancement de la synchronisation entre Discord et le forum
+// on récupère tous les threads Discord
+// on utilise un ticker pour limiter la fréquence de récupération des messages et pour éviter la saturation du serveur Discord
+func (e *Env_discord) StartSyncro(ctx context.Context, interval time.Duration) {
+    ticker := time.NewTicker(interval)
+    defer ticker.Stop()
+    var threads []DiscordThread
+    index := 0
+    // on utilise une map pour stocker les sujets en pause de synchronisation pour éviter les problèmes de synchronisation lors de la suppression d'un sujet
+    paused := make(map[string]bool)
+    for {
+        select {
+        case <-ctx.Done():
             return
+        case sujet_id := <-e.pauseSyncro: // si on reçoit un signal de pause pour un sujet, on le met en pause dans la map
+            paused[sujet_id] = true 
+            index = 0  //on force le refresh la liste des threads pour éviter de continuer sur une liste de threads obsolète
+            threads = nil
+        case sujet_id := <-e.resumeSyncro: // si on reçoit un signal de reprise pour un sujet, on le supprime de la map pour reprendre la synchronisation
+            delete(paused, sujet_id)
+        case <-ticker.C: // à chaque tick, on récupère les messages de 10 threads Discord pour les ajouter dans le forum
+            if index == 0 {
+                threads, _ = e.Discord_api.GetAllThreadDiscord(ctx, e.Discord_api.Channel_ID)
+            }
+            if len(threads) == 0 {
+                continue
+            }
+            end := index + 10
+            if end > len(threads) {
+                end = len(threads)
+            }
+            for _, t := range threads[index:end] {
+                id := t.ID
+                name := t.Name
+                if paused[id] { // si on rencontre le sujet en question alors on le saute 
+                    continue
+                }
+                go func(threadID, threadName string) {
+                    e.GetMessagesService(ctx, threadID, threadName)
+                }(id, name)
+            }
+            index += 10
+            if index >= len(threads) {
+                index = 0
+            }
         }
-        channelid = getChannelID(forum_name)
     }
-    getAllThreads(channelid)
-    getThreadMessages("1486667609759023135")
 }
-*/
+
+// 2 Problèmes :
+// Plus il y a d'utilisateurs, plus il y a de threads, plus le temps de synchronisation est long
+// Latence entre la création d'un thread/message et son apparition sur le forum
+
+// Problème de fonctionnalité : 
+// on peut supprimer un message sur discord mais elle ne sera pas supprimé sur le forum ( le cas inverse marche)
+// quand on répond à un message sur le forum, la réponse n'apparaît pas sur discord et idem pour la création d'un message sur le forum

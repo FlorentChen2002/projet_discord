@@ -8,13 +8,14 @@ import "./styles.css";
 // Récupère tous les sujets et permet une recherche par titre.
 // Les sujets privés sont visibles uniquement par les admins.
 function Forum({ user }) {
-    // État initial
+    // État initial pour les sujets, la mémoire des sujets et la recherche
     const [memoire, setMemoire] = useState([]);
     const [sujets, setSujets] = useState([]);
     const [recherche, setRecherche] = useState("");
     const rechercheRef = useRef("");
     const navigate = useNavigate();
-
+    
+    // Fonction de filtrage des sujets en fonction de la recherche
     const filtreSujets = (data, valeur) => {
         const rechercheNormalisee = valeur.trim().toLowerCase();
         if (!rechercheNormalisee) {
@@ -26,6 +27,8 @@ function Forum({ user }) {
     };
 
     // comportement
+
+    // Fonction pour récupérer tous les sujets du forum
     const getAllSujet = async() =>{
         try {
             const response = await axios.get('http://localhost:8000/api/forum/sujet',{ withCredentials: true });
@@ -38,37 +41,34 @@ function Forum({ user }) {
             console.error("Erreur lors de l'envoi de la requête :", e);
         }
     }
-
+    // Fonction de recherche qui met à jour les sujets affichés en fonction de la recherche
     const cherche = (e,resultat) =>{
         e.preventDefault();
         rechercheRef.current = resultat;
         setRecherche(resultat);
         setSujets(filtreSujets(memoire, resultat));
     }
-
+    // Mise à jour de la référence de recherche à chaque changement de recherche
     useEffect(() => {
         rechercheRef.current = recherche;
     }, [recherche]);
 
+    // Effet de bord pour récupérer les sujets et écouter les événements du forum
     useEffect(() => {
         document.body.classList.add("forum");
         getAllSujet();
-
         const source = new EventSource("http://localhost:8000/api/forum/events", {
             withCredentials: true,
         });
-
         source.addEventListener("forum", (event) => {
             const update = JSON.parse(event.data);
             if (update.type === "sujet") {
                 getAllSujet();
             }
         });
-
         source.onerror = () => {
             source.close();
         };
-
         return () => {
             document.body.classList.remove("forum");
             source.close();
@@ -83,7 +83,6 @@ function Forum({ user }) {
                 { sujets.map((sujet) => {
                     const showSujet = !sujet.prive || user.rang?.toString() === "admin";
                     if (!showSujet) return null;
-
                     return (
                         <div 
                             className="post-link" 
@@ -97,7 +96,7 @@ function Forum({ user }) {
                                     {sujet.prive&& <span className="badge-forum"> privée </span>}
                                 </h3>
                                 <p>
-                                    - Auteur: {sujet.user_pseudo} - Posté: {sujet.date}
+                                    - Auteur: {sujet.userpseudo} - Posté: {sujet.date}
                                 </p>
                             </div>
                         </div>

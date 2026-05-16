@@ -13,48 +13,48 @@ import Deconnexion from "./components/dashboard/deconnexion/Deconnexion";
 import { BrowserRouter } from "react-router-dom";
 
 function App() {
-  const [user,setUser]=useState("");
-  const [isLoading, setIsLoading] = useState(true);
+    const [user,setUser]=useState("");
+    const [isLoading, setIsLoading] = useState(true);
+    // Fonction pour vérifier l'authentification de l'utilisateur en envoyant une requête GET à l'API
+    const checkAuth = async () => {
+        try {
+        const response = await axios.get('http://localhost:8000/api/user/me', {
+            withCredentials: true
+        });
+        if(response.data){
+            console.log("Requête GEt envoyée avec succès :", response.data);
+            setUser(response.data);
+            setIsLoading(true);
+        }
+        } catch (error) {
+        setIsLoading(false);
+        }
+    };
 
-  const checkAuth = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/user/me', {
-        withCredentials: true
-      });
-      if(response.data){
-        console.log("Requête GEt envoyée avec succès :", response.data);
-        setUser(response.data);
+    useEffect(() => { checkAuth(); }, []); // lance une fois pour vérifier si il est connecté
+
+    const refreshAuth = () => {
         setIsLoading(true);
-      }
-    } catch (error) {
-      setIsLoading(false);
+        checkAuth();
+    };
+    if (isLoading){
+        return (
+        <div className="App">
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <DashBoard users={user}/>
+            </BrowserRouter>
+        </div>
+        );
     }
-  };
 
-  useEffect(() => { checkAuth(); }, []); // lance une fois pour vérifier si il est connecté
 
-  const refreshAuth = () => {
-    setIsLoading(true);
-    checkAuth();
-  };
-  if (isLoading){
     return (
-      <div className="App">
-        <BrowserRouter>
-          <DashBoard users={user}/>
-        </BrowserRouter>
-    </div>
+        <div className="App">
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <AuthRouter refreshAuth={refreshAuth} />
+            </BrowserRouter>
+        </div>
     );
-  }
-
-
-  return (
-    <div className="App">
-      <BrowserRouter>
-        <AuthRouter refreshAuth={refreshAuth} />
-      </BrowserRouter>
-    </div>
-  );
 }
 
 export default App;

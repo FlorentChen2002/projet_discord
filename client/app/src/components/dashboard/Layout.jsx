@@ -4,8 +4,6 @@ import Header from "./Header";
 import Deconnexion from "./deconnexion/Deconnexion";
 import "./forum/styles.css";
 
-
-
 //Structure principale de la page avec header, barre de navigation latérale et contenu dynamique via Outlet.
 const Layout = ({user}) => {
     useEffect(() => {
@@ -17,10 +15,10 @@ const Layout = ({user}) => {
     return (
         <div>
             <header className="header">
-                <h1>Forum</h1>
+                <h1>Forum X Discord</h1>
                 <div className="nav-links">
-                    <a href="#">Vidéo</a>
-                    <a href="https://github.com/FlorentChen2002/Omega">Github  </a>
+                    <a href="https://discord.gg/aXWtgNb6kz">Discord</a>
+                    <a href="https://github.com/FlorentChen2002/projet_discord">Github  </a>
                     <Deconnexion/>
                 </div>
             </header>

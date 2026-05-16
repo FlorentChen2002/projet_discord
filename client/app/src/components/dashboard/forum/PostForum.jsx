@@ -7,13 +7,13 @@ import "./styles.css";
 // Permet à l'utilisateur de poster un sujet (privé si admin).
 function PostForum({ user }) {
 
-    //state
+    //state initial pour le titre, le contenu et la visibilité privée du sujet
     const [titre, setTitre] = useState("");
     const [contenu, setContenu] = useState("");
     const [prive, setPrive] = useState(false);
     const navigate = useNavigate();
     const showPrive = user.rang.toString()==="admin";
-
+    
     //comportement
     const getTitre = (evt) => {
         setTitre(evt.target.value);
@@ -24,6 +24,7 @@ function PostForum({ user }) {
     const handleChange = (evt) => {
         setPrive(evt.target.checked);
     }
+    // Fonction de soumission du formulaire qui envoie une requête pour créer un nouveau sujet de forum
     const submissionHandler = async(evt) => {
         evt.preventDefault();
         try {
