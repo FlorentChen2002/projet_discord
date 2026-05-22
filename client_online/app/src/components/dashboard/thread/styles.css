@@ -1,0 +1,171 @@
+body.sujet {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin: 0;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.containers {
+    max-width: 1200px;
+    margin: auto;
+    padding: 0 24px;
+}
+
+.contents {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    margin-top: 24px;
+    gap: 20px;
+}
+
+.contents > section {
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .containers {
+        margin-left: 24px;
+    }
+}
+
+.main-content {
+    flex: 3;
+    background: white;
+    padding: 28px 32px;
+    border-radius: 10px;
+    border: 1px solid #e8eaed;
+    min-width: 0;
+}
+
+.article-text {
+    width: 100%;
+    padding: 0;
+    box-sizing: border-box;
+    font-size: 15px;
+    line-height: 1.75;
+    color: #2c2c3e;
+}
+
+.meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 16px;
+}
+
+.commentaire-actions {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid #f0f2f5;
+    font-size: 13px;
+    color: #999;
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    align-items: center;
+}
+
+.commentaire-actions span {
+    cursor: pointer;
+    transition: color 0.15s;
+    user-select: none;
+}
+
+.commentaire-actions span:hover {
+    color: #0079d3;
+}
+
+.reaction-buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.reaction-buttons button {
+    background: #f0f2f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.reaction-buttons button:hover {
+    background: #e8f0fe;
+    border-color: #b0c4f1;
+    color: #0079d3;
+    transform: scaleY(1.04);
+}
+
+.commentaire {
+    margin-top: 28px;
+    background: white;
+    padding: 24px 28px;
+    border-radius: 10px;
+    border: 1px solid #e8eaed;
+}
+
+.commentaire-body {
+    margin-top: 14px;
+    background: #fafbfc;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid #eceef1;
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.commentaire-body:hover {
+    border-color: #c5cae9;
+    transform: scaleX(1.01) scaleY(1.005);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.commentaire-meta {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.commentaire-meta .author {
+    font-weight: 600;
+    color: #1a1a2e;
+    font-size: 15px;
+    line-height: 1.2;
+}
+
+.commentaire-meta .meta {
+    margin-bottom: 0;
+    padding: 0;
+    line-height: 1.2;
+}
+
+.comment p {
+    margin: 0;
+    color: #2c2c3e;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.reply-block {
+    margin-left: 64px;
+    margin-top: 14px;
+    background: #f6f9ff;
+    border: 1px solid #dbe7ff;
+    border-radius: 10px;
+    padding: 14px 16px 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
