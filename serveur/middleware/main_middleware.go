@@ -8,7 +8,7 @@ import (
 func CorsMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         origin := r.Header.Get("Origin")
-        if origin == "http://localhost:5173" || origin == "https://projet-discord.onrender.com" {
+        if origin == "http://localhost:5173" || origin == "https://projet-discord.onrender.com" || origin == "https://projetdiscord-production.up.railway.app" {
             w.Header().Set("Access-Control-Allow-Origin", origin)
         }
         w.Header().Set("Access-Control-Allow-Credentials", "true")
