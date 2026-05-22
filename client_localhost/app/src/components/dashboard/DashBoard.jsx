@@ -20,7 +20,7 @@ function DashBoard({ users }) {
     return (
         <Routes>
             <Route path="/" element={<Layout user={users} />}>
-                <Route index element={<Navigate to="/forum" />} />
+                <Route index element={<Navigate to="/forum" replace />} />
                 <Route path="forum" element={<LayoutForum user={users} />}>
                     <Route index element={<Forum user={users} />} />
                     <Route path="sujet" element={<Principale user={users} />} />
@@ -28,6 +28,7 @@ function DashBoard({ users }) {
                 <Route path="postforum" element={<PostForum user={users} />} />
                 <Route path="profile" element={<Profile user={users} />} />
                 <Route path="listuser" element={<ListUser />} />
+                <Route path="*" element={<Navigate to="/forum" replace />} />
             </Route>
         </Routes>
     );

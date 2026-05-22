@@ -3,7 +3,7 @@
 import React from "react";
 import Register from "./Register";
 import Login from "./Login";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 // Composant de routage pour l'authentification (login/register)
 function AuthRouter({ refreshAuth }) {
@@ -13,6 +13,7 @@ function AuthRouter({ refreshAuth }) {
       <Route index element={<Login refreshAuth={refreshAuth} />} />
       <Route path="/login" element={<Login refreshAuth={refreshAuth} />} />
       <Route path="/register" element={<Register refreshAuth={refreshAuth}/>} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
