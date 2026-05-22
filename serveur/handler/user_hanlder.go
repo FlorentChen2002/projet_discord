@@ -72,7 +72,7 @@ func (e *Env) LoginHandler(w http.ResponseWriter, r *http.Request) {
     }
     session_id := primitive.NewObjectID().Hex()
     SetSession(session_id, user_id)
-    http.SetCookie(w, &http.Cookie{ Name: "session_token", Value: session_id, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: true, MaxAge: 3600,})
+    http.SetCookie(w, &http.Cookie{ Name: "session_token", Value: session_id, Path: "/", HttpOnly: true, SameSite: http.SameSiteNoneMode, Secure: true, MaxAge: 3600,})
     w.WriteHeader(http.StatusOK)
     retour := map[string]interface{}{"id": user_id, "message": "Connexion réussie", "status": 200,}
     json.NewEncoder(w).Encode(retour)
