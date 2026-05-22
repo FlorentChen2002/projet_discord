@@ -69,3 +69,26 @@ npm run dev
 ---
 
 3. Le serveur MongoDB est lancé en ligne.
+
+### Utilisation
+
+Une fois le projet lancé, l'utilisation est la suivante:
+
+1. Ouvrir l'application dans le navigateur
+2. Créer un compte ou se connecte
+3. Aller dans le forum pour consulter les sujets
+4. Ouvrir un sujet pour lire les messages et ajouter un commentaire
+5. Créer un nouveau sujet
+6. Utiliser la page de profil pour consulter les informations d'un utilisateur
+7. Se déconnecter à la fin de la session
+
+### Utilisation de Discord
+
+Le projet est lié à un serveur Discord pour synchroniser le forum avec l'application:
+
+1. Le serveur backend doit être lancé avec la variable `DISCORD_TOKEN` configurée.
+2. Au démarrage, le bot utilise le salon Discord nommé `forum`.
+3. Un sujet créé sur le site apparaît dans Discord dans le salon correspondant, et inversement un sujet créé sur Discord apparaît sur le forum.
+4. Un message ajouté sur le site est aussi envoyé sur Discord, et inversement.
+5. Le backend récupère régulièrement les nouveaux messages Discord pour mettre à jour le site.
+
