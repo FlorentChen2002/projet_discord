@@ -42,7 +42,7 @@ func setupDiscordBot(ctx context.Context, s *service.Discord_service) error {
 
 // fonction pour appliquer les middlewares à un handler 
 func middleware_direction(h http.HandlerFunc, fonction_middleware func(http.Handler) http.Handler) http.Handler {
-    return middleware.Direction_middleware( h, fonction_middleware, middleware.LoggingMiddleware, middleware.CorsMiddleware)
+    return middleware.Direction_middleware(h, middleware.CorsMiddleware, middleware.LoggingMiddleware, fonction_middleware)
 }
 
 // fonction principale pour démarrer le serveur
