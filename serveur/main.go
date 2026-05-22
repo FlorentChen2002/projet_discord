@@ -76,7 +76,7 @@ func main() {
     forum_reposite := &repository.Forum_reposite{ Sujet_Collection : db.Collection("ForumDB"), Thread_Collection : db.Collection("ThreadDB"),}
     forum_service := &service.Forum_service{ Forum_reposite: forum_reposite,}
     forum_events := service.NewForumEventHub()
-    env_discord := &service.Env_discord{ Discord_repo: discord_reposite, Discord_api: discord, Forum_service: forum_service, Forum_Events: forum_events,}
+    env_discord := service.NewEnvDiscord(discord_reposite, discord, forum_service, forum_events)
     forum_service.Env_discord = env_discord
     env_forum := &handler.Env_forum{ Forum_reposite: forum_service, Forum_Events: forum_events,}
 

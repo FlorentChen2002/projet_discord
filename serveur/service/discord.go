@@ -20,6 +20,18 @@ type Env_discord struct {
     resumeSyncro chan string
 }
 
+//constructeur pour le conteneur Env_discord
+func NewEnvDiscord(discordRepo *repository.Discord_reposite, discordAPI *Discord_service, forumService *Forum_service, forumEvents *ForumEventHub) *Env_discord {
+    return &Env_discord{
+        Discord_repo: discordRepo,
+        Discord_api: discordAPI,
+        Forum_service: forumService,
+        Forum_Events: forumEvents,
+        pauseSyncro: make(chan string, 1),
+        resumeSyncro: make(chan string, 1),
+    }
+}
+
 // fonction qui permet de créer un nouveau verrou par sujet_id
 func (e *Env_discord) getMutex(sujet_id string) *sync.RWMutex {
     mu, _ := e.mu.LoadOrStore(sujet_id, &sync.RWMutex{})
@@ -135,13 +147,17 @@ func (e *Env_discord) DeleteMessageService(ctx context.Context, sujet_id string,
 // fonction qui permet de supprimer le thread et tous les messages associés dans Discord
 // et de supprimer la collection concernant
 func (e *Env_discord) DeleteSujetService(ctx context.Context, sujet_id string){
-    e.pauseSyncro <- sujet_id
+    if e.pauseSyncro != nil {
+        e.pauseSyncro <- sujet_id
+    }
     mu := e.getMutex(sujet_id)
     mu.Lock()
     defer mu.Unlock()
     e.Discord_api.DeleteThreadDiscord(ctx, sujet_id)
     e.Discord_repo.DeleteLastMessage(ctx, sujet_id)
-    e.resumeSyncro <- sujet_id
+    if e.resumeSyncro != nil {
+        e.resumeSyncro <- sujet_id
+    }
 }
 
 // Lancement de la synchronisation entre Discord et le forum
